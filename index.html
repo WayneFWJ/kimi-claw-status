@@ -70,10 +70,24 @@
         .avatar-container { position: relative; display: inline-block; margin-bottom: 32px; }
         .avatar {
             width: 140px; height: 140px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
-            display: flex; align-items: center; justify-content: center; font-size: 64px;
+            overflow: hidden;
+            position: relative;
             box-shadow: 0 0 60px var(--glow-red), 0 0 120px var(--glow-orange), inset 0 0 20px rgba(255,255,255,0.1);
             animation: avatarPulse 3s ease-in-out infinite;
+        }
+        .avatar img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 75%);
+            mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 75%);
+        }
+        .avatar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            box-shadow: inset 0 0 30px 10px var(--bg-primary);
+            pointer-events: none;
         }
         @keyframes avatarPulse {
             0%, 100% { transform: scale(1); box-shadow: 0 0 60px var(--glow-red), 0 0 120px var(--glow-orange); }
@@ -288,7 +302,7 @@
     <div class="container">
         <header>
             <div class="avatar-container">
-                <div class="avatar">❤️‍🔥</div>
+                <div class="avatar"><img src="assets/avatar.jpg" alt="小岛秀夫"></div>
                 <div class="avatar-ring"></div>
                 <div class="status-badge"></div>
             </div>
