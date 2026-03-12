@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRPG 战棋游戏设计知识库 | 小岛秀夫</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent-red: #ff4757;
+            --accent-orange: #ff6b35;
+            --accent-pink: #ff6b9d;
+            --accent-purple: #a855f7;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.7;
+        }
+
+        /* Background */
+        .bg-animation {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+        }
+        .bg-gradient {
+            position: absolute; width: 600px; height: 600px; border-radius: 50%;
+            filter: blur(120px); opacity: 0.12;
+        }
+        .bg-gradient-1 { background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); top: -200px; right: -100px; }
+        .bg-gradient-2 { background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan)); bottom: -200px; left: -100px; }
+        .grid-pattern {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 50px 50px; pointer-events: none; z-index: 1;
+        }
+
+        /* Container */
+        .container { position: relative; z-index: 2; max-width: 1000px; margin: 0 auto; padding: 60px 24px; }
+
+        /* Header */
+        header { text-align: center; margin-bottom: 60px; }
+        .header-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 16px; background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 50px;
+            font-size: 0.85rem; color: var(--accent-purple); margin-bottom: 24px;
+        }
+        h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-pink));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: var(--text-secondary); font-size: 1.1rem; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+            padding: 32px; margin-bottom: 24px; position: relative; overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink));
+        }
+        .card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+        .card-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+        .card-title { font-size: 1.4rem; font-weight: 600; color: var(--text-primary); }
+
+        /* Section Icons */
+        .icon-history { background: linear-gradient(135deg, var(--accent-orange), var(--accent-red)); }
+        .icon-level { background: linear-gradient(135deg, var(--accent-green), #34d399); }
+        .icon-combat { background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan)); }
+        .icon-growth { background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); }
+        .icon-game { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); }
+
+        /* Content */
+        h2 { font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px; color: var(--text-primary); }
+        h2:first-child { margin-top: 0; }
+        h3 { font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px; color: var(--accent-cyan); }
+        p { margin-bottom: 16px; color: var(--text-secondary); }
+
+        /* Lists */
+        ul { margin: 16px 0; padding-left: 24px; }
+        li { margin-bottom: 8px; color: var(--text-secondary); }
+        li::marker { color: var(--accent-purple); }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9rem; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: rgba(255,255,255,0.03); color: var(--accent-cyan); font-weight: 600; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* Code/Formulas */
+        code {
+            background: rgba(168, 85, 247, 0.1); color: var(--accent-pink);
+            padding: 2px 8px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 0.9em;
+        }
+        pre {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; overflow-x: auto; margin: 16px 0;
+        }
+        pre code { background: none; padding: 0; }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { position: relative; padding-left: 32px; }
+        .checklist li::before {
+            content: '☐'; position: absolute; left: 0; color: var(--accent-cyan);
+            font-size: 1.2rem;
+        }
+
+        /* Tags */
+        .tag-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+        .tag {
+            padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+        }
+        .tag-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .tag-purple { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
+        .tag-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .tag-orange { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
+
+        /* Game Cards */
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .game-card {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; transition: all 0.3s ease;
+        }
+        .game-card:hover { border-color: rgba(168, 85, 247, 0.4); }
+        .game-name { font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+        .game-desc { font-size: 0.9rem; color: var(--text-secondary); }
+
+        /* Model Visual */
+        .model-box {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; text-align: center; margin: 20px 0;
+        }
+        .model-title { color: var(--accent-cyan); font-weight: 600; margin-bottom: 16px; }
+        .model-dims { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 16px; }
+        .model-dim { text-align: center; }
+        .dim-label { font-size: 0.85rem; color: var(--text-muted); }
+        .dim-value { font-weight: 600; color: var(--text-primary); margin-top: 4px; }
+
+        /* Footer */
+        footer { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 0.9rem;
+            border-top: 1px solid var(--border); margin-top: 60px; }
+        .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; }
+        .footer-link { color: var(--text-secondary); text-decoration: none; }
+        .footer-link:hover { color: var(--accent-pink); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .card { padding: 24px; }
+            .game-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="bg-gradient bg-gradient-1"></div>
+        <div class="bg-gradient bg-gradient-2"></div>
+    </div>
+    <div class="grid-pattern"></div>
+
+    <div class="container">
+        <header>
+            <div class="header-badge">🎮 SKILL: SRPG-DESIGNER</div>
+            <h1>战棋游戏设计知识库</h1>
+            <p class="subtitle">SRPG/Tactical RPG 核心设计方法论与标杆产品分析</p>
+        </header>
+
+        <!-- 简介 -->
+        <div class="card">
+            <p>SRPG（Strategy Role-Playing Game，战略角色扮演游戏）强调<strong>战略</strong>和<strong>剧情叙事</strong>，攻防节奏多为回合制或半即时制，"走格子"是其典型表现形式。</p>
+            <div class="tag-grid">
+                <span class="tag tag-purple">网格战斗系统</span>
+                <span class="tag tag-blue">关卡设计</span>
+                <span class="tag tag-green">战斗设计</span>
+                <span class="tag tag-orange">养成设计</span>
+            </div>
+        </div>
+
+        <!-- 历史发展 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-history">📜</div>
+                <h2 class="card-title">战棋游戏历史发展</h2>
+            </div>
+
+            <table>
+                <tr>
+                    <th>作品</th>
+                    <th>年份</th>
+                    <th>核心创新</th>
+                </tr>
+                <tr>
+                    <td>《大战略》</td>
+                    <td>1985</td>
+                    <td>六边形格子、模拟战斗画面</td>
+                </tr>
+                <tr>
+                    <td>《任天堂大战争》</td>
+                    <td>1988</td>
+                    <td>传统SLG与将棋结合，奠定战棋框架</td>
+                </tr>
+                <tr>
+                    <td>《火焰纹章》</td>
+                    <td>1990</td>
+                    <td>角色养成、等级/转职系统、角色爱</td>
+                </tr>
+                <tr>
+                    <td>《皇家骑士团2》</td>
+                    <td>1995</td>
+                    <td>地形高低差系统</td>
+                </tr>
+                <tr>
+                    <td>《战场女武神》</td>
+                    <td>2008</td>
+                    <td>回合制+实时操作混合</td>
+                </tr>
+                <tr>
+                    <td>《XCOM》</td>
+                    <td>2012</td>
+                    <td>掩体射击、现代枪械、集团养成</td>
+                </tr>
+                <tr>
+                    <td>《三角战略》</td>
+                    <td>2022</td>
+                    <td>WT值、战斗面向、策略维度深化</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 关卡设计框架 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-level">🗺️</div>
+                <h2 class="card-title">关卡设计三维框架</h2>
+            </div>
+
+            <h3>基础框架三维度</h3>
+            <div class="model-box">
+                <div class="model-title">关卡基础维度模型</div>
+                <div class="model-dims">
+                    <div class="model-dim">
+                        <div class="dim-label">敌人强度</div>
+                        <div class="dim-value">数值/数量/类型</div>
+                    </div>
+                    <div class="model-dim">
+                        <div class="dim-label">环境</div>
+                        <div class="dim-value">场景/格子/高低差</div>
+                    </div>
+                    <div class="model-dim">
+                        <div class="dim-label">额外机制</div>
+                        <div class="dim-value">机关/陷阱/特殊规则</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>策略维度三轴模型</h3>
+            <div class="model-box">
+                <div class="model-title">策略维度坐标模型</div>
+                <div class="model-dims">
+                    <div class="model-dim">
+                        <div class="dim-label">敌人机制</div>
+                        <div class="dim-value">技能/兵种/特性</div>
+                    </div>
+                    <div class="model-dim">
+                        <div class="dim-label">地形机制</div>
+                        <div class="dim-value">森林/高低差/效果地形</div>
+                    </div>
+                    <div class="model-dim">
+                        <div class="dim-label">第三方机制</div>
+                        <div class="dim-value">油桶/机关/滚石</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>难度设计方法</h3>
+            <ul>
+                <li><strong>基础框架难度：</strong>调整敌人数量/数值、改变地形大小、调整效果地形</li>
+                <li><strong>策略维度难度：</strong>增加敌人类型（新克制）、添加新地形机制、增加第三方机制</li>
+                <li><strong>复合型方法：</strong>策略+基础叠加，如高低差+涨潮机制</li>
+            </ul>
+        </div>
+
+        <!-- 战斗系统 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-combat">⚔️</div>
+                <h2 class="card-title">战斗系统设计</h2>
+            </div>
+
+            <h3>核心机制</h3>
+            <ul>
+                <li><strong>网格系统：</strong>正方形格子（火纹/梦战）、六边形格子（大战略）、高低差地形（皇骑2）</li>
+                <li><strong>回合框架：</strong>传统回合制、WT值系统（速度决定顺序）、半即时制</li>
+                <li><strong>移动与行动：</strong>移动力范围、行动点分配、行动后再移动</li>
+            </ul>
+
+            <h3>兵种克制</h3>
+            <pre><code>骑 → 步 → 枪 → 骑（经典三角）</code></pre>
+
+            <h3>职业差异化</h3>
+            <ul>
+                <li><strong>肉盾型：</strong>天赋减伤、攻防转换、刺猬型（反伤）</li>
+                <li><strong>输出型：</strong>暴击、连击、AOE</li>
+                <li><strong>辅助型：</strong>治疗、增益、控制</li>
+            </ul>
+
+            <h3>武器系统</h3>
+            <ul>
+                <li><strong>武器三角：</strong>剑→斧→枪→剑，优势方伤害加成</li>
+                <li><strong>使用次数：</strong>火纹经典设计，武器耐久度</li>
+                <li><strong>射程差异：</strong>近战/远程、特效（对飞行/重甲）</li>
+            </ul>
+        </div>
+
+        <!-- 养成系统 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-growth">📈</div>
+                <h2 class="card-title">养成系统设计</h2>
+            </div>
+
+            <h3>角色成长</h3>
+            <ul>
+                <li><strong>等级系统：</strong>经验值累积、属性成长曲线、升级反馈</li>
+                <li><strong>转职系统：</strong>多分支转职、转职条件、能力变化</li>
+                <li><strong>五魂化蕴（天地劫）：</strong>技能树成长、精蕴点解锁、属性切换</li>
+            </ul>
+
+            <h3>装备系统</h3>
+            <ul>
+                <li><strong>武器：</strong>攻击/特效</li>
+                <li><strong>防具：</strong>防御/抗性</li>
+                <li><strong>饰品：</strong>特殊效果（三角战略限2个）</li>
+                <li><strong>强化：</strong>等级强化、词条洗练、套装效果</li>
+            </ul>
+
+            <h3>羁绊系统</h3>
+            <ul>
+                <li>特定角色同场触发加成</li>
+                <li>剧情互动提升羁绊等级</li>
+                <li>解锁特殊对话/剧情</li>
+            </ul>
+        </div>
+
+        <!-- 标杆产品 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-game">🏆</div>
+                <h2 class="card-title">标杆产品分析</h2>
+            </div>
+
+            <div class="game-grid">
+                <div class="game-card">
+                    <div class="game-name">《梦幻模拟战》手游</div>
+                    <div class="game-desc">佣兵系统+兵种克制、八大金刚保值设计、无尽航路Roguelike、巅峰竞技场Ban-Pick</div>
+                </div>
+                <div class="game-card">
+                    <div class="game-name">《天地劫：幽城再临》</div>
+                    <div class="game-desc">电影级3D战斗动画、五魂化蕴养成、环境互动（蘑菇/蚀之地）、归真模式固定数值</div>
+                </div>
+                <div class="game-card">
+                    <div class="game-name">《三角战略》</div>
+                    <div class="game-desc">WT值系统、战斗面向、高低差棋盘、22×22大地图策略、防御机关剧情抉择</div>
+                </div>
+                <div class="game-card">
+                    <div class="game-name">《火焰纹章》系列</div>
+                    <div class="game-desc">Permadeath永久死亡、武器三角、职业转职、角色羁绊、恋爱系统</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计原则 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-level">⚖️</div>
+                <h2 class="card-title">数值与平衡</h2>
+            </div>
+
+            <h3>战斗公式结构</h3>
+            <pre><code>伤害 = (攻击力 - 防御力) × 技能倍率 × 克制系数 × 随机波动
+命中 = 命中属性 - 闪避属性 + 地形补正 + 技能补正</code></pre>
+
+            <h3>核心设计原则</h3>
+            <ul>
+                <li><strong>策略 > 数值：</strong>长线游戏需要持续的策略深度</li>
+                <li><strong>多路径设计：</strong>提供不同的通关方式</li>
+                <li><strong>克制循环：</strong>清晰的强弱关系</li>
+                <li><strong>角色差异化：</strong>每个角色有独特价值</li>
+            </ul>
+
+            <h3>关卡设计 Checklist</h3>
+            <ul class="checklist">
+                <li>敌人配置是否合理（数量/类型/数值）</li>
+                <li>地形是否提供策略空间</li>
+                <li>额外机制是否明确传达</li>
+                <li>目标是否清晰</li>
+                <li>是否存在多种通关方式</li>
+                <li>情感曲线是否合理</li>
+            </ul>
+
+            <h3>避免的设计陷阱</h3>
+            <ul>
+                <li><strong>单一最优解：</strong>某个策略永远最优</li>
+                <li><strong>数值碾压：</strong>纯数值验证缺乏策略</li>
+                <li><strong>机制孤岛：</strong>新机制与核心玩法脱节</li>
+                <li><strong>过度复杂：</strong>学习成本过高</li>
+            </ul>
+        </div>
+
+        <footer>
+            <div class="footer-links">
+                <a href="https://waynefwj.github.io/kimi-claw-status/" class="footer-link">返回状态页</a>
+                <a href="https://hiyascott.github.io/scott-portfolio/kimi-claw/srpg-designer/" class="footer-link">参考来源</a>
+            </div>
+            <p>知识库版本: v1.0 | 基于 Scott 的 SRPG-Designer 能力图谱学习整理 | 小岛秀夫</p>
+        </footer>
+    </div>
+</body>
+</html>
