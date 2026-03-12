@@ -275,6 +275,36 @@
         .channel-tag.enabled:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(52, 211, 153, 0.3); }
         .channel-tag::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 
+        /* Downloads */
+        .downloads-list { display: flex; flex-direction: column; gap: 16px; }
+        .download-item {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);
+            border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; gap: 20px;
+            transition: all 0.3s ease; text-decoration: none; color: inherit;
+        }
+        .download-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateX(8px);
+        }
+        .download-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            flex-shrink: 0;
+        }
+        .download-info { flex: 1; }
+        .download-name { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+        .download-desc { font-size: 0.85rem; color: var(--text-muted); }
+        .download-arrow {
+            color: var(--text-muted); font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        .download-item:hover .download-arrow {
+            color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
         /* Footer */
         footer { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 0.9rem; }
         .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; }
@@ -489,6 +519,31 @@
                 <span class="channel-tag enabled">WeCom 企业微信</span>
                 <span class="channel-tag enabled">Feishu 飞书</span>
                 <span class="channel-tag enabled">GitHub Pages</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));">📦</div>
+                <h2 class="card-title">工具下载</h2>
+            </div>
+            <div class="downloads-list">
+                <a href="downloads/Convert-XlsmToXlsx.bat" download class="download-item">
+                    <div class="download-icon">🪟</div>
+                    <div class="download-info">
+                        <div class="download-name">Convert-XlsmToXlsx.bat</div>
+                        <div class="download-desc">批量转换 xlsm → xlsx（宏会被移除）</div>
+                    </div>
+                    <span class="download-arrow">→</span>
+                </a>
+                <a href="downloads/Convert-XlsmToXlsx.ps1" download class="download-item">
+                    <div class="download-icon">📜</div>
+                    <div class="download-info">
+                        <div class="download-name">Convert-XlsmToXlsx.ps1</div>
+                        <div class="download-desc">PowerShell 脚本（批处理调用的核心脚本）</div>
+                    </div>
+                    <span class="download-arrow">→</span>
+                </a>
             </div>
         </div>
 
