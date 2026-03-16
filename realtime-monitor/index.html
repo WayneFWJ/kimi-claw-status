@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小岛秀夫 · 实时监控 | 火凤燎原工作室</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #14141c;
+            --bg-card: #1e1e2a;
+            --gold-primary: #d4a84b;
+            --gold-light: #e8c97a;
+            --gold-dark: #8b6f2e;
+            --accent-green: #4bc94b;
+            --accent-yellow: #d4a84b;
+            --accent-red: #c94b4b;
+            --text-primary: #f0e6d8;
+            --text-secondary: #a09080;
+            --text-muted: #605850;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Upstash Redis 配置 */
+        const UPSTASH_URL = "https://artistic-prawn-73537.upstash.io";
+        const UPSTASH_TOKEN = "gQAAAAAAAR9BAAIncDIzOTVlYjkxYWZhZjU0NGNmOWEwMGE1OTEzZGZmZDE3M3AyNzM1Mzc";
+
+        /* 像素边框 */
+        .pixel-box {
+            background: var(--bg-card);
+            border: 2px solid var(--gold-dark);
+            position: relative;
+        }
+
+        .pixel-box::before {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px; right: 3px; bottom: 3px;
+            border: 1px solid var(--gold-primary);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .pixel-corner {
+            position: absolute;
+            width: 8px; height: 8px;
+            border: 2px solid var(--gold-primary);
+        }
+        .corner-tl { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+        .corner-tr { top: -2px; right: -2px; border-left: 0; border-bottom: 0; }
+        .corner-bl { bottom: -2px; left: -2px; border-right: 0; border-top: 0; }
+        .corner-br { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+        /* 头部 */
+        .hero {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border: 2px solid var(--gold-dark);
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold-primary), transparent);
+        }
+
+        .hero-avatar {
+            width: 80px; height: 80px;
+            background: var(--bg-primary);
+            border: 2px solid var(--gold-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .hero-content { flex: 1; }
+        .hero-title {
+            font-size: 1.5rem;
+            color: var(--gold-light);
+            margin-bottom: 6px;
+        }
+        .hero-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* 实时监控面板 */
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(212,168,75,0.2);
+        }
+
+        .monitor-item {
+            text-align: center;
+            padding: 16px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--gold-dark);
+        }
+
+        .monitor-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .monitor-value {
+            font-size: 1rem;
+            color: var(--gold-light);
+            font-weight: 600;
+        }
+
+        .monitor-value.status-idle { color: var(--accent-green); }
+        .monitor-value.status-processing { color: var(--accent-yellow); }
+        .monitor-value.status-busy { color: var(--accent-red); }
+
+        /* 负载条 */
+        .load-bar-container {
+            padding: 16px;
+        }
+
+        .load-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .load-bar {
+            height: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--gold-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .load-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow), var(--accent-red));
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .load-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(0,0,0,0.3) 10px,
+                rgba(0,0,0,0.3) 20px
+            );
+        }
+
+        /* 趋势图 */
+        .trend-chart {
+            padding: 16px;
+            border-top: 1px solid rgba(212,168,75,0.2);
+        }
+
+        .chart-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .chart-canvas {
+            height: 100px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: var(--gold-dark);
+            opacity: 0.6;
+            transition: all 0.3s;
+        }
+
+        .chart-bar.active {
+            opacity: 1;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .monitor-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <div class="hero-avatar">⚔️</div>
+            <div class="hero-content">
+                <h1 class="hero-title">小岛秀夫 · 实时监控</h1>
+                <p class="hero-subtitle">Wayen 的专属游戏设计 AI · 实时状态监控</p>
+            </div>
+            <div class="status-indicator" id="connection-status">
+                <div class="status-dot"></div>
+                <span style="color: var(--accent-green); font-size: 0.9rem;">在线</span>
+            </div>
+        </div>
+
+        <div class="pixel-box" style="margin-bottom: 16px;">
+            <span class="pixel-corner corner-tl"></span>
+            <span class="pixel-corner corner-tr"></span>
+            <span class="pixel-corner corner-bl"></span>
+            <span class="pixel-corner corner-br"></span>
+
+            <div class="monitor-grid">
+                <div class="monitor-item">
+                    <div class="monitor-label">会话状态</div>
+                    <div class="monitor-value" id="session-status">--</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-label">当前任务</div>
+                    <div class="monitor-value" id="current-task">--</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-label">最后更新</div>
+                    <div class="monitor-value" id="last-update">--</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-label">响应延迟</div>
+                    <div class="monitor-value" id="response-time">--</div>
+                </div>
+            </div>
+
+            <div class="load-bar-container">
+                <div class="load-bar-label">
+                    <span>系统负载</span>
+                    <span id="load-percent">0%</span>
+                </div>
+                <div class="load-bar">
+                    <div class="load-bar-fill" id="load-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="trend-chart">
+                <div class="chart-label">负载趋势 (最近30分钟)</div>
+                <div class="chart-canvas" id="trend-canvas">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Upstash Redis REST API 配置
+        const UPSTASH_URL = 'https://artistic-prawn-73537.upstash.io';
+        const UPSTASH_TOKEN = 'gQAAAAAAAR9BAAIncDIzOTVlYjkxYWZhZjU0NGNmOWEwMGE1OTEzZGZmZDE3M3AyNzM1Mzc';
+
+        let historyData = [];
+        let lastFetchTime = Date.now();
+
+        // 发送 Redis 命令
+        async function redisCommand(command, ...args) {
+            const url = `${UPSTASH_URL}/${command}/${args.join('/')}`;
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${UPSTASH_TOKEN}`
+                    }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Redis error:', error);
+                return null;
+            }
+        }
+
+        // 获取当前状态
+        async function fetchCurrentStatus() {
+            const result = await redisCommand('get', 'kimi:current');
+            if (result && result.result) {
+                try {
+                    return JSON.parse(result.result);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // 获取历史数据
+        async function fetchHistory() {
+            const result = await redisCommand('zrange', 'kimi:history', '0', '-1');
+            if (result && result.result) {
+                return result.result.map(item => {
+                    try {
+                        return JSON.parse(item);
+                    } catch (e) {
+                        return null;
+                    }
+                }).filter(Boolean);
+            }
+            return [];
+        }
+
+        // 更新UI
+        function updateUI(status) {
+            if (!status) {
+                document.getElementById('session-status').textContent = '离线';
+                document.getElementById('session-status').className = 'monitor-value';
+                return;
+            }
+
+            // 状态映射
+            const statusMap = {
+                'idle': { text: '🟢 空闲', class: 'status-idle' },
+                'processing': { text: '🟡 处理中', class: 'status-processing' },
+                'waiting': { text: '⏳ 等待中', class: '' },
+                'busy': { text: '🔴 高载', class: 'status-busy' }
+            };
+
+            const statusInfo = statusMap[status.status] || { text: status.status, class: '' };
+            
+            document.getElementById('session-status').textContent = statusInfo.text;
+            document.getElementById('session-status').className = `monitor-value ${statusInfo.class}`;
+            
+            document.getElementById('current-task').textContent = status.task || '--';
+            
+            // 计算最后更新时间
+            const lastUpdate = new Date(status.timestamp * 1000);
+            const diff = Math.floor((Date.now() - lastUpdate) / 1000);
+            const timeText = diff < 60 ? '刚刚' : 
+                           diff < 300 ? `${Math.floor(diff/60)}分钟前` : 
+                           diff < 3600 ? `${Math.floor(diff/60)}分钟前` : 
+                           `${Math.floor(diff/3600)}小时前`;
+            document.getElementById('last-update').textContent = timeText;
+            
+            // 响应延迟（模拟）
+            document.getElementById('response-time').textContent = status.status === 'idle' ? '< 1s' : '< 3s';
+
+            // 负载条
+            const load = status.load || 0;
+            document.getElementById('load-percent').textContent = `${load}%`;
+            document.getElementById('load-bar').style.width = `${Math.min(load, 100)}%`;
+        }
+
+        // 更新趋势图
+        function updateTrendChart(history) {
+            const canvas = document.getElementById('trend-canvas');
+            canvas.innerHTML = '';
+            
+            // 取最近60个数据点
+            const recent = history.slice(-60);
+            
+            recent.forEach((item, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.height = `${Math.max(10, item.load || 0)}%`;
+                
+                if (index === recent.length - 1) {
+                    bar.classList.add('active');
+                }
+                
+                // 根据负载着色
+                if (item.load > 65) {
+                    bar.style.background = 'var(--accent-red)';
+                } else if (item.load > 45) {
+                    bar.style.background = 'var(--accent-yellow)';
+                } else {
+                    bar.style.background = 'var(--accent-green)';
+                }
+                
+                canvas.appendChild(bar);
+            });
+        }
+
+        // 主循环
+        async function update() {
+            const status = await fetchCurrentStatus();
+            const history = await fetchHistory();
+            
+            updateUI(status);
+            updateTrendChart(history);
+            
+            lastFetchTime = Date.now();
+        }
+
+        // 初始化
+        update();
+        
+        // 每10秒更新一次
+        setInterval(update, 10000);
+
+        // 连接状态检测
+        setInterval(() => {
+            const diff = Date.now() - lastFetchTime;
+            const indicator = document.getElementById('connection-status');
+            if (diff > 30000) {
+                indicator.innerHTML = '<span style="color: var(--accent-red);">● 连接中断</span>';
+            } else {
+                indicator.innerHTML = '<div class="status-dot"></div><span style="color: var(--accent-green);">在线</span>';
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
