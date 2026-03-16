@@ -433,8 +433,8 @@
         // 初始化
         update();
         
-        // 每10秒更新一次
-        setInterval(update, 10000);
+        // 每30秒更新一次（节省额度：3,180次/天）
+        setInterval(update, 30000);
 
         // 连接状态检测
         setInterval(() => {
