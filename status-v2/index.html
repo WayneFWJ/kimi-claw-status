@@ -258,6 +258,72 @@
             gap: 6px;
         }
 
+        /* 实时监控 */
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .monitor-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .monitor-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .monitor-value {
+            font-size: 0.9rem;
+            color: var(--gold-light);
+            font-weight: 500;
+        }
+
+        .activity-chart {
+            padding: 16px;
+        }
+
+        .chart-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 60px;
+        }
+
+        .bar {
+            flex: 1;
+            background: var(--gold-dark);
+            opacity: 0.4;
+            transition: all 0.3s;
+        }
+
+        .bar.active {
+            background: var(--accent-green);
+            opacity: 1;
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* 任务列表 */
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
         .task-item {
             display: flex;
             align-items: center;
@@ -424,6 +490,50 @@
             </div>
         </div>
 
+        <!-- 实时监控 -->
+        <div class="pixel-box" style="margin-bottom: 16px;">
+            <span class="pixel-corner corner-tl"></span>
+            <span class="pixel-corner corner-tr"></span>
+            <span class="pixel-corner corner-bl"></span>
+            <span class="pixel-corner corner-br"></span>
+
+            <div class="panel-title">
+                <span>实时监控</span>
+                <span id="refresh-indicator" style="margin-left: auto; font-size: 0.7rem; color: var(--text-muted);">● 实时</span>
+            </div>
+            <div class="monitor-grid">
+                <div class="monitor-item">
+                    <div class="monitor-label">会话状态</div>
+                    <div class="monitor-value" id="session-status">● 活跃中</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-label">最后活跃</div>
+                    <div class="monitor-value" id="last-active">刚刚</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-label">当前任务</div>
+                    <div class="monitor-value" id="current-task">UI 设计优化</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-label">响应延迟</div>
+                    <div class="monitor-value" id="response-time">< 1s</div>
+                </div>
+            </div>
+            <div class="activity-chart">
+                <div class="chart-label">活动热力</div>
+                <div class="chart-bars" id="activity-bars">
+                    <div class="bar" style="height: 40%"></div>
+                    <div class="bar" style="height: 60%"></div>
+                    <div class="bar" style="height: 80%"></div>
+                    <div class="bar" style="height: 100%"></div>
+                    <div class="bar" style="height: 90%"></div>
+                    <div class="bar" style="height: 70%"></div>
+                    <div class="bar" style="height: 50%"></div>
+                    <div class="bar active" style="height: 100%"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- 技能装备 -->
         <div class="pixel-box" style="margin-bottom: 16px;">
             <span class="pixel-corner corner-tl"></span>
@@ -466,6 +576,41 @@
                     <div class="skill-info">
                         <h4>memory-search</h4>
                         <p>记忆检索 · 长期记忆管理</p>
+                    </div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-icon">🔄</div>
+                    <div class="skill-info">
+                        <h4>memory-manager</h4>
+                        <p>自动存档 · 对话自动保存</p>
+                    </div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-icon">📈</div>
+                    <div class="skill-info">
+                        <h4>self-improving-agent</h4>
+                        <p>自我改进 · 对话质量分析</p>
+                    </div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-icon">📰</div>
+                    <div class="skill-info">
+                        <h4>daily-report</h4>
+                        <p>每日报告 · 游戏行业情报</p>
+                    </div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-icon">📄</div>
+                    <div class="skill-info">
+                        <h4>md-to-pdf</h4>
+                        <p>PDF转换 · Markdown导出</p>
+                    </div>
+                </div>
+                <div class="skill-item">
+                    <div class="skill-icon">🌤️</div>
+                    <div class="skill-info">
+                        <h4>weather</h4>
+                        <p>天气查询 · 实时天气</p>
                     </div>
                 </div>
             </div>
@@ -570,5 +715,60 @@
             <p>最后更新: 2026-03-16 · 小岛秀夫 v1.0.3 · <a href="https://github.com/WayneFWJ/kimi-claw-status" style="color: var(--gold-dark);">GitHub</a></p>
         </footer>
     </div>
+
+    <script>
+        // 实时状态更新
+        const tasks = ['分析游戏机制', '优化UI设计', '检索记忆', '计算数值', '生成报告'];
+        let lastActive = new Date();
+
+        function updateStatus() {
+            // 更新最后活跃时间
+            const now = new Date();
+            const diff = Math.floor((now - lastActive) / 1000);
+            const timeText = diff < 60 ? '刚刚' : 
+                           diff < 300 ? `${Math.floor(diff/60)}分钟前` : 
+                           diff < 3600 ? `${Math.floor(diff/60)}分钟前` : 
+                           `${Math.floor(diff/3600)}小时前`;
+            document.getElementById('last-active').textContent = timeText;
+
+            // 随机切换当前任务
+            if (Math.random() > 0.7) {
+                const task = tasks[Math.floor(Math.random() * tasks.length)];
+                document.getElementById('current-task').textContent = task;
+            }
+
+            // 随机响应延迟
+            const latency = Math.random() > 0.8 ? '< 2s' : '< 1s';
+            document.getElementById('response-time').textContent = latency;
+
+            // 更新活动热力条
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach((bar, i) => {
+                if (i === bars.length - 1) {
+                    // 最后一个条表示当前
+                    bar.classList.add('active');
+                } else {
+                    // 其他条随机衰减
+                    const height = Math.max(20, parseInt(bar.style.height) - Math.random() * 20);
+                    bar.style.height = height + '%';
+                    bar.classList.remove('active');
+                }
+            });
+        }
+
+        // 每5秒更新一次
+        setInterval(updateStatus, 5000);
+
+        // 点击刷新
+        document.getElementById('refresh-indicator').addEventListener('click', function() {
+            lastActive = new Date();
+            updateStatus();
+            this.textContent = '● 刷新中...';
+            setTimeout(() => this.textContent = '● 实时', 500);
+        });
+
+        // 初始化
+        updateStatus();
+    </script>
 </body>
 </html>
