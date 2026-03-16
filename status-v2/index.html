@@ -41,7 +41,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
         }
 
         /* 像素边框 */
@@ -146,11 +146,13 @@
             50% { opacity: 0.5; }
         }
 
-        /* 主网格 */
+        /* 主网格 - 居中卡片式 */
         .main-grid {
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 280px 1fr;
             gap: 16px;
+            max-width: 1100px;
+            margin: 0 auto;
         }
 
         .left-column, .right-column {
