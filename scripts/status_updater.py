@@ -34,6 +34,19 @@ def redis_request(method, path, body=None):
         print(f"Error: {e}", file=sys.stderr)
         return None
 
+def get_current_status():
+    """获取当前状态"""
+    result = redis_request("GET", "/get/kimi:current")
+    if result and result.get("result"):
+        try:
+            wrapper = json.loads(result["result"])
+            if wrapper.get("value"):
+                return json.loads(wrapper["value"])
+            return wrapper
+        except:
+            pass
+    return None
+
 def update_status(status="idle", task="", load=0):
     """更新状态"""
     timestamp = int(time.time())
@@ -66,7 +79,18 @@ if __name__ == "__main__":
     action = sys.argv[1] if len(sys.argv) > 1 else "heartbeat"
     
     if action == "heartbeat":
-        update_status("idle", "等待中", 0)
+        # 心跳保活：如果正在处理任务，不要覆盖，只更新时间
+        current = get_current_status()
+        if current and current.get("status") in ["processing", "busy"]:
+            # 保持当前状态，只更新timestamp
+            current["timestamp"] = int(time.time())
+            redis_request("POST", "/set/kimi:current", {
+                "value": json.dumps(current)
+            })
+            redis_request("GET", "/expire/kimi:current/300")
+            print(f"✓ {current['status']} | {current.get('task', '')} | 保持状态(心跳)")
+        else:
+            update_status("idle", "等待中", 0)
     elif action == "start":
         task = sys.argv[2] if len(sys.argv) > 2 else "处理中"
         update_status("processing", task, 35)
