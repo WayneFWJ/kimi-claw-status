@@ -325,8 +325,14 @@
             const result = await redisCommand('get', 'kimi:current');
             if (result && result.result) {
                 try {
-                    return JSON.parse(result.result);
+                    // Upstash GET 返回 {value: "json字符串"}
+                    const wrapper = JSON.parse(result.result);
+                    if (wrapper.value) {
+                        return JSON.parse(wrapper.value);
+                    }
+                    return wrapper;
                 } catch (e) {
+                    console.error('Parse error:', e);
                     return null;
                 }
             }
@@ -336,10 +342,15 @@
         // 获取历史数据
         async function fetchHistory() {
             const result = await redisCommand('zrange', 'kimi:history', '0', '-1');
-            if (result && result.result) {
+            if (result && result.result && Array.isArray(result.result)) {
                 return result.result.map(item => {
                     try {
-                        return JSON.parse(item);
+                        // 每个 item 也是 {value: "json字符串"}
+                        const wrapper = JSON.parse(item);
+                        if (wrapper.value) {
+                            return JSON.parse(wrapper.value);
+                        }
+                        return wrapper;
                     } catch (e) {
                         return null;
                     }
