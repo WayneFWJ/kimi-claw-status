@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人记账工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        label {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        
+        input, select, textarea {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(17, 153, 142, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.875rem;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+        
+        .smart-match {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 8px;
+            font-size: 0.875rem;
+            color: #2e7d32;
+            display: none;
+        }
+        
+        .smart-match.show {
+            display: block;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .cat-交通 { background: #e3f2fd; color: #1976d2; }
+        .cat-恰饭 { background: #fff3e0; color: #f57c00; }
+        .cat-日常 { background: #f3e5f5; color: #7b1fa2; }
+        .cat-购物 { background: #e8f5e9; color: #388e3c; }
+        .cat-娱乐 { background: #fce4ec; color: #c2185b; }
+        .cat-饮品 { background: #e0f2f1; color: #00796b; }
+        .cat-社交 { background: #fff8e1; color: #f9a825; }
+        .cat-医疗 { background: #ffebee; color: #c62828; }
+        .cat-宠物 { background: #efebe9; color: #5d4037; }
+        
+        .hidden-fields {
+            display: none;
+        }
+        
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📒 个人记账工具</h1>
+        
+        <!-- 统计卡片 -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">总笔数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalAmount">¥0.00</div>
+                <div class="stat-label">总金额</div>
+            </div>
+        </div>
+        
+        <!-- 记账表单 -->
+        <div class="card">
+            <div class="card-title">✏️ 记一笔</div>
+            <form id="accountForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="billTime">账单时间 *</label>
+                        <input type="datetime-local" id="billTime" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="type">类型</label>
+                        <select id="type" disabled>
+                            <option value="支出" selected>支出</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">分类 *</label>
+                        <select id="category" required>
+                            <option value="">请选择分类</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="subcategory">子分类 *</label>
+                        <select id="subcategory" required disabled>
+                            <option value="">请先选择分类</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="amount">金额 *</label>
+                        <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ledger">账本</label>
+                        <select id="ledger" disabled>
+                            <option value="日常生活" selected>日常生活</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="remark">备注</label>
+                        <textarea id="remark" placeholder="输入备注，系统会自动匹配分类（如：早餐、打车、咖啡等）"></textarea>
+                        <div class="smart-match" id="smartMatchTip"></div>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> 保存账目
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                        <span>📊</span> 导出 Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 账目列表 -->
+        <div class="card">
+            <div class="card-title">📋 账目记录</div>
+            <div class="table-container">
+                <table id="recordsTable">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>类型</th>
+                            <th>分类</th>
+                            <th>子分类</th>
+                            <th>金额</th>
+                            <th>账本</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsBody">
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <div class="empty-state-icon">📝</div>
+                                <div>暂无记录，记一笔吧！</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 分类-子分类关系数据
+        const categoryData = {
+            "交通": ["停车", "出租车", "加油", "洗车"],
+            "医疗": ["药品"],
+            "娱乐": ["付费会员", "游乐场"],
+            "宠物": ["狗"],
+            "恰饭": ["午餐", "夜宵", "早餐", "晚餐", "零食"],
+            "日常": ["家政", "电费", "租金"],
+            "社交": ["亲友"],
+            "购物": ["快递", "杂物", "烟"],
+            "饮品": ["咖啡", "饮料"]
+        };
+        
+        // 智能匹配规则（备注关键词 -> 分类, 子分类）
+        const smartMatchRules = [
+            { keywords: ["停车", "停车费", "公司停车"], category: "交通", subcategory: "停车" },
+            { keywords: ["打车", "出租车", "滴滴", "uber"], category: "交通", subcategory: "出租车" },
+            { keywords: ["加油", "油费", "汽油"], category: "交通", subcategory: "加油" },
+            { keywords: ["洗车"], category: "交通", subcategory: "洗车" },
+            { keywords: ["药", "药品", "看病", "医院"], category: "医疗", subcategory: "药品" },
+            { keywords: ["会员", "icloud", "icloud", "会员费"], category: "娱乐", subcategory: "付费会员" },
+            { keywords: ["游乐场", "迪士尼", "欢乐谷"], category: "娱乐", subcategory: "游乐场" },
+            { keywords: ["狗", "狗粮", "宠物"], category: "宠物", subcategory: "狗" },
+            { keywords: ["午饭", "午餐"], category: "恰饭", subcategory: "午餐" },
+            { keywords: ["夜宵", "宵夜", "烧烤", "串串"], category: "恰饭", subcategory: "夜宵" },
+            { keywords: ["早饭", "早餐", "包子", "煎饼", "鸡蛋"], category: "恰饭", subcategory: "早餐" },
+            { keywords: ["晚饭", "晚餐", "海金滋", "小笼"], category: "恰饭", subcategory: "晚餐" },
+            { keywords: ["零食", "酸奶", "薯片", "巧克力", "糖果"], category: "恰饭", subcategory: "零食" },
+            { keywords: ["阿姨", "家政", "保洁", "打扫"], category: "日常", subcategory: "家政" },
+            { keywords: ["电费", "电"], category: "日常", subcategory: "电费" },
+            { keywords: ["房租", "租金", "房租"], category: "日常", subcategory: "租金" },
+            { keywords: ["朋友", "亲友", "送礼", "红包"], category: "社交", subcategory: "亲友" },
+            { keywords: ["快递", "运费", "邮费"], category: "购物", subcategory: "快递" },
+            { keywords: ["乐高", "杂物", "日用品"], category: "购物", subcategory: "杂物" },
+            { keywords: ["烟", "香烟", "买烟"], category: "购物", subcategory: "烟" },
+            { keywords: ["咖啡", "星巴克", "瑞幸"], category: "饮品", subcategory: "咖啡" },
+            { keywords: ["饮料", "奶茶", "果汁", "可乐"], category: "饮品", subcategory: "饮料" }
+        ];
+        
+        // 账目数据存储
+        let records = JSON.parse(localStorage.getItem('accountRecords') || '[]');
+        
+        // 初始化分类下拉菜单
+        function initCategorySelect() {
+            const categorySelect = document.getElementById('category');
+            for (const category in categoryData) {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            }
+        }
+        
+        // 分类改变时更新子分类
+        document.getElementById('category').addEventListener('change', function() {
+            const category = this.value;
+            const subcategorySelect = document.getElementById('subcategory');
+            
+            subcategorySelect.innerHTML = '<option value="">请选择子分类</option>';
+            
+            if (category && categoryData[category]) {
+                categoryData[category].forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = sub;
+                    subcategorySelect.appendChild(option);
+                });
+                subcategorySelect.disabled = false;
+            } else {
+                subcategorySelect.disabled = true;
+            }
+        });
+        
+        // 备注智能匹配
+        document.getElementById('remark').addEventListener('input', function() {
+            const remark = this.value.toLowerCase();
+            const tip = document.getElementById('smartMatchTip');
+            
+            if (!remark) {
+                tip.classList.remove('show');
+                return;
+            }
+            
+            // 查找匹配规则
+            for (const rule of smartMatchRules) {
+                for (const keyword of rule.keywords) {
+                    if (remark.includes(keyword.toLowerCase())) {
+                        // 自动填充分类和子分类
+                        document.getElementById('category').value = rule.category;
+                        
+                        // 触发分类改变事件
+                        const event = new Event('change');
+                        document.getElementById('category').dispatchEvent(event);
+                        
+                        // 设置子分类
+                        setTimeout(() => {
+                            document.getElementById('subcategory').value = rule.subcategory;
+                        }, 0);
+                        
+                        tip.textContent = `💡 已自动匹配：${rule.category} - ${rule.subcategory}`;
+                        tip.classList.add('show');
+                        return;
+                    }
+                }
+            }
+            
+            tip.classList.remove('show');
+        });
+        
+        // 设置默认时间为当前时间
+        function setDefaultTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('billTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        
+        // 格式化时间显示
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+        
+        // 保存账目
+        document.getElementById('accountForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const record = {
+                id: Date.now(),
+                billTime: document.getElementById('billTime').value,
+                type: document.getElementById('type').value,
+                category: document.getElementById('category').value,
+                subcategory: document.getElementById('subcategory').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                ledger: document.getElementById('ledger').value,
+                account1: '',
+                account2: '',
+                remark: document.getElementById('remark').value,
+                billImage: '',
+                reimbursement: '',
+                discount: '',
+                tags: '',
+                member: ''
+            };
+            
+            records.unshift(record);
+            localStorage.setItem('accountRecords', JSON.stringify(records));
+            
+            renderRecords();
+            updateStats();
+            
+            // 重置表单
+            document.getElementById('remark').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('subcategory').innerHTML = '<option value="">请先选择分类</option>';
+            document.getElementById('subcategory').disabled = true;
+            document.getElementById('smartMatchTip').classList.remove('show');
+            setDefaultTime();
+            
+            alert('✅ 账目保存成功！');
+        });
+        
+        // 渲染账目列表
+        function renderRecords() {
+            const tbody = document.getElementById('recordsBody');
+            
+            if (records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <div>暂无记录，记一笔吧！</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = records.map(record => `
+                <tr>
+                    <td>${formatTime(record.billTime)}</td>
+                    <td>${record.type}</td>
+                    <td><span class="category-tag cat-${record.category}">${record.category}</span></td>
+                    <td>${record.subcategory}</td>
+                    <td style="font-weight: 600; color: #e53935;">¥${record.amount.toFixed(2)}</td>
+                    <td>${record.ledger}</td>
+                    <td>${record.remark || '-'}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteRecord(${record.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 删除账目
+        function deleteRecord(id) {
+            if (confirm('确定要删除这条账目吗？')) {
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('accountRecords', JSON.stringify(records));
+                renderRecords();
+                updateStats();
+            }
+        }
+        
+        // 更新统计
+        function updateStats() {
+            const totalCount = records.length;
+            const totalAmount = records.reduce((sum, r) => sum + r.amount, 0);
+            
+            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('totalAmount').textContent = `¥${totalAmount.toFixed(2)}`;
+        }
+        
+        // 导出 Excel
+        function exportToExcel() {
+            if (records.length === 0) {
+                alert('⚠️ 暂无账目可导出！');
+                return;
+            }
+            
+            const data = records.map(r => ({
+                "账单时间": formatTime(r.billTime),
+                "类型": r.type,
+                "分类": r.category,
+                "子分类": r.subcategory,
+                "金额": r.amount,
+                "账本": r.ledger,
+                "账户1": r.account1,
+                "账户2": r.account2,
+                "备注": r.remark,
+                "账单图片": r.billImage,
+                "报销": r.reimbursement,
+                "优惠": r.discount,
+                "标签": r.tags,
+                "成员": r.member
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "账目记录");
+            
+            // 设置列宽
+            ws['!cols'] = [
+                { wch: 18 }, // 账单时间
+                { wch: 8 },  // 类型
+                { wch: 10 }, // 分类
+                { wch: 10 }, // 子分类
+                { wch: 12 }, // 金额
+                { wch: 12 }, // 账本
+                { wch: 10 }, // 账户1
+                { wch: 10 }, // 账户2
+                { wch: 20 }, // 备注
+                { wch: 10 }, // 账单图片
+                { wch: 10 }, // 报销
+                { wch: 10 }, // 优惠
+                { wch: 10 }, // 标签
+                { wch: 10 }  // 成员
+            ];
+            
+            const now = new Date();
+            const filename = `账目记录_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            
+            alert(`✅ 导出成功！共导出 ${records.length} 条记录。`);
+        }
+        
+        // 初始化
+        initCategorySelect();
+        setDefaultTime();
+        renderRecords();
+        updateStats();
+    </script>
+</body>
+</html>
