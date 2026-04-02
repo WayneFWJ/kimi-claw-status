@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关卡配置生成工作流 - 可视化演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .grid-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(100, 150, 255, 0.05), transparent);
+            height: 1px;
+            width: 100%;
+            animation: scan 8s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+        
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* 标题 */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        /* 工作流容器 */
+        .workflow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        /* 步骤卡片 */
+        .step-card {
+            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(100, 150, 255, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .step-card:hover {
+            border-color: rgba(100, 150, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(100, 150, 255, 0.1);
+        }
+        
+        .step-card.active {
+            border-color: #667eea;
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .step-card.completed {
+            border-color: #4ade80;
+        }
+        
+        .step-card.error {
+            border-color: #f87171;
+        }
+        
+        /* 步骤头部 */
+        .step-header {
+            display: flex;
+            align-items: center;
+            padding: 20px 25px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.2);
+            transition: background 0.2s;
+        }
+        
+        .step-header:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .step-number.completed {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+        
+        .step-number.error {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+        
+        .step-number.running {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .step-info {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .step-desc {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .step-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .step-status.pending {
+            background: rgba(100, 100, 100, 0.2);
+            color: #888;
+        }
+        
+        .step-status.running {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+        
+        .step-status.completed {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+        
+        .step-status.error {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+        
+        /* 步骤内容 */
+        .step-content {
+            padding: 0 25px 25px;
+            display: none;
+        }
+        
+        .step-content.expanded {
+            display: block;
+        }
+        
+        /* 输入输出区域 */
+        .io-section {
+            display: grid;
+            grid-template-columns: 1fr 60px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .io-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .io-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .io-content {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #b0b0b0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .io-content .highlight {
+            color: #667eea;
+        }
+        
+        .io-content .success {
+            color: #4ade80;
+        }
+        
+        .io-content .error {
+            color: #f87171;
+        }
+        
+        /* 箭头 */
+        .arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+        
+        .arrow.running {
+            animation: bounce 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+        }
+        
+        /* 操作按钮 */
+        .action-bar {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 控制台 */
+        .console {
+            background: #0d0d12;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.8rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .console-line {
+            padding: 3px 0;
+            color: #666;
+        }
+        
+        .console-line.info {
+            color: #667eea;
+        }
+        
+        .console-line.success {
+            color: #4ade80;
+        }
+        
+        .console-line.error {
+            color: #f87171;
+        }
+        
+        .console-line.timestamp {
+            color: #444;
+            margin-right: 10px;
+        }
+        
+        /* 全局控制栏 */
+        .global-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(26, 26, 46, 0.95);
+            padding: 15px 25px;
+            border-radius: 50px;
+            border: 1px solid rgba(100, 150, 255, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        .global-btn {
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .global-btn.run {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: #0a0a0f;
+        }
+        
+        .global-btn.run:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(74, 222, 128, 0.3);
+        }
+        
+        .global-btn.reset {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+        }
+        
+        .global-btn.reset:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 连接线动画 */
+        .connector {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .connector-line {
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(100, 150, 255, 0.3), rgba(100, 150, 255, 0.1));
+            position: relative;
+        }
+        
+        .connector-line.active {
+            background: linear-gradient(180deg, #667eea, #764ba2);
+        }
+        
+        .connector-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #667eea;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #667eea;
+        }
+        
+        .connector-dot.running {
+            animation: dot-pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes dot-pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.5; }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 900px) {
+            .io-section {
+                grid-template-columns: 1fr;
+            }
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景动画 -->
+    <div class="bg-animation">
+        <div class="grid-line" style="top: 10%"></div>
+        <div class="grid-line" style="top: 30%; animation-delay: 2s"></div>
+        <div class="grid-line" style="top: 50%; animation-delay: 4s"></div>
+        <div class="grid-line" style="top: 70%; animation-delay: 6s"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎮 关卡配置生成工作流</h1>
+            <p>从设计文档到项目配置的自动化流水线</p>
+        </div>
+
+        <div class="workflow-container" id="workflow">
+            <!-- 步骤将通过JS动态生成 -->
+        </div>
+
+        <!-- 控制台 -->
+        <div class="console" id="console">
+            <div class="console-line info">
+                <span class="timestamp">[00:00:00]</span>
+                工作流初始化完成，等待开始...
+            </div>
+        </div>
+    </div>
+
+    <!-- 全局控制栏 -->
+    <div class="global-controls">
+        <button class="global-btn run" onclick="runWorkflow()">
+            ▶ 运行工作流
+        </button>
+        <button class="global-btn reset" onclick="resetWorkflow()">
+            ↺ 重置
+        </button>
+    </div>
+
+    <script>
+        // 工作流配置
+        const workflowSteps = [
+            {
+                id: 1,
+                title: "设计文档解析",
+                desc: "读取策划Excel，提取关卡数据",
+                input: `📄 三英战吕布_关卡设计.xlsx
+├── 设计概览 (关卡ID/类型/难度)
+├── 关卡剧情 (简介/角色/情感)
+├── 关卡设计 (玩法/规则/地图)
+├── 战前演绎 (分镜/动作/台词)
+└── 战后演绎 (结算/动画)`,
+                output: `{
+  "level_id": "HF-001",
+  "name": "三英战吕布",
+  "type": "survival",
+  "difficulty": 4,
+  "turns": 15,
+  "characters": [...],
+  "map": {...},
+  "events": [...]
+}`,
+                validate: () => true,
+                process: () => new Promise(r => setTimeout(r, 1500))
+            },
+            {
+                id: 2,
+                title: "数据验证与转换",
+                desc: "检查数据完整性，转换为目标格式",
+                input: `{
+  "level_id": "HF-001",
+  "name": "三英战吕布",
+  "characters": [
+    {"id": "liangyuanhuo", "level": 25},
+    {"id": "lvbu", "level": 99}
+  ]
+}`,
+                output: `✅ 验证通过
+├── 必填字段: 7/7 通过
+├── 数值范围: 通过
+├── 关联资源: 通过
+└── 警告: 无
+
+📦 生成中间配置...
+├── level_config.json
+├── character_config.json
+└── map_config.json`,
+                validate: () => true,
+                process: () => new Promise(r => setTimeout(r, 2000))
+            },
+            {
+                id: 3,
+                title: "生成项目配置",
+                desc: "合并策划配置，生成最终游戏配置",
+                input: `📁 中间配置
+├── level_config.json
+├── character_config.json
+├── map_config.json
+📁 现有配置
+├── characters.xlsx
+├── skills.xlsx
+└── items.xlsx`,
+                output: `📦 最终输出
+├── configs/levels/HF-001.json
+├── configs/levels/HF-001_map.json
+├── configs/levels/HF-001_events.json
+├── configs/dialogs/HF-001_pre.json
+├── configs/dialogs/HF-001_post.json
+└── manifest.json (更新)`,
+                validate: () => true,
+                process: () => new Promise(r => setTimeout(r, 1800))
+            },
+            {
+                id: 4,
+                title: "配置导入/提交",
+                desc: "导入游戏或提交到版本控制",
+                input: `📦 待导入配置
+├── HF-001.json (2.3KB)
+├── HF-001_map.json (15.7KB)
+├── HF-001_events.json (1.1KB)
+└── manifest.json (0.5KB)
+
+目标: 游戏服务器`,
+                output: `✅ 导入成功
+├── 关卡配置: ✓
+├── 地图配置: ✓
+├── 事件配置: ✓
+├── 演绎配置: ✓
+└── 总计: 4个文件, 19.6KB
+
+📝 Git提交
+commit: "feat: 添加三英战吕布关卡配置"
+branch: feature/level-HF-001`,
+                validate: () => true,
+                process: () => new Promise(r => setTimeout(r, 1200))
+            }
+        ];
+
+        let currentStep = 0;
+        let isRunning = false;
+
+        // 初始化工作流
+        function initWorkflow() {
+            const container = document.getElementById('workflow');
+            container.innerHTML = '';
+
+            workflowSteps.forEach((step, index) => {
+                const stepEl = createStepElement(step, index);
+                container.appendChild(stepEl);
+
+                if (index < workflowSteps.length - 1) {
+                    const connector = createConnector(index);
+                    container.appendChild(connector);
+                }
+            });
+        }
+
+        function createStepElement(step, index) {
+            const div = document.createElement('div');
+            div.className = 'step-card';
+            div.id = `step-${index}`;
+            div.innerHTML = `
+                <div class="step-header" onclick="toggleStep(${index})">
+                    <div class="step-number" id="step-num-${index}">${index + 1}</div>
+                    <div class="step-info">
+                        <div class="step-title">${step.title}</div>
+                        <div class="step-desc">${step.desc}</div>
+                    </div>
+                    <div class="step-status pending" id="step-status-${index}">等待中</div>
+                </div>
+                <div class="step-content" id="step-content-${index}">
+                    <div class="io-section">
+                        <div class="io-box">
+                            <div class="io-label">📥 输入</div>
+                            <div class="io-content"><pre>${step.input}</pre></div>
+                        </div>
+                        <div class="arrow" id="arrow-${index}">→</div>
+                        <div class="io-box">
+                            <div class="io-label">📤 输出</div>
+                            <div class="io-content" id="output-${index}"><pre style="color: #555">等待执行...</pre></div>
+                        </div>
+                    </div>
+                    <div class="action-bar">
+                        <button class="btn btn-secondary" onclick="previewStep(${index})">
+                            👁 预览
+                        </button>
+                        <button class="btn btn-secondary" onclick="editStep(${index})">
+                            ✏ 编辑
+                        </button>
+                        <button class="btn btn-primary" onclick="runStep(${index})" id="btn-run-${index}">
+                            ▶ 执行此步骤
+                        </button>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        function createConnector(index) {
+            const div = document.createElement('div');
+            div.className = 'connector';
+            div.id = `connector-${index}`;
+            div.innerHTML = `
+                <div class="connector-line">
+                    <div class="connector-dot"></div>
+                </div>
+            `;
+            return div;
+        }
+
+        function toggleStep(index) {
+            const content = document.getElementById(`step-content-${index}`);
+            content.classList.toggle('expanded');
+        }
+
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            line.innerHTML = `<span class="timestamp">[${timestamp}]</span>${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        async function runWorkflow() {
+            if (isRunning) return;
+            isRunning = true;
+            currentStep = 0;
+
+            resetWorkflow();
+            log('开始执行工作流...', 'info');
+
+            for (let i = 0; i < workflowSteps.length; i++) {
+                await runStep(i);
+                
+                if (i < workflowSteps.length - 1) {
+                    const connector = document.getElementById(`connector-${i}`);
+                    connector.querySelector('.connector-line').classList.add('active');
+                    connector.querySelector('.connector-dot').classList.add('running');
+                    await new Promise(r => setTimeout(r, 300));
+                }
+            }
+
+            log('工作流执行完成！', 'success');
+            isRunning = false;
+        }
+
+        async function runStep(index) {
+            const step = workflowSteps[index];
+            const card = document.getElementById(`step-${index}`);
+            const num = document.getElementById(`step-num-${index}`);
+            const status = document.getElementById(`step-status-${index}`);
+            const output = document.getElementById(`output-${index}`);
+            const arrow = document.getElementById(`arrow-${index}`);
+            const btn = document.getElementById(`btn-run-${index}`);
+
+            // 展开步骤
+            document.getElementById(`step-content-${index}`).classList.add('expanded');
+
+            // 更新状态为运行中
+            card.classList.add('active');
+            num.classList.add('running');
+            status.className = 'step-status running';
+            status.textContent = '执行中';
+            arrow.classList.add('running');
+            btn.disabled = true;
+
+            log(`步骤 ${index + 1}: ${step.title} - 开始执行`);
+
+            // 模拟处理
+            await step.process();
+
+            // 验证
+            const success = step.validate();
+
+            if (success) {
+                card.classList.remove('active');
+                card.classList.add('completed');
+                num.classList.remove('running');
+                num.classList.add('completed');
+                num.innerHTML = '✓';
+                status.className = 'step-status completed';
+                status.textContent = '已完成';
+                output.innerHTML = `<pre class="success">${step.output}</pre>`;
+                arrow.classList.remove('running');
+                log(`步骤 ${index + 1}: ${step.title} - 执行成功`, 'success');
+            } else {
+                card.classList.add('error');
+                num.classList.remove('running');
+                num.classList.add('error');
+                status.className = 'step-status error';
+                status.textContent = '失败';
+                log(`步骤 ${index + 1}: ${step.title} - 执行失败`, 'error');
+            }
+
+            btn.disabled = false;
+        }
+
+        function resetWorkflow() {
+            workflowSteps.forEach((step, index) => {
+                const card = document.getElementById(`step-${index}`);
+                const num = document.getElementById(`step-num-${index}`);
+                const status = document.getElementById(`step-status-${index}`);
+                const output = document.getElementById(`output-${index}`);
+                const arrow = document.getElementById(`arrow-${index}`);
+                const content = document.getElementById(`step-content-${index}`);
+
+                card.classList.remove('active', 'completed', 'error');
+                num.classList.remove('running', 'completed', 'error');
+                num.textContent = index + 1;
+                status.className = 'step-status pending';
+                status.textContent = '等待中';
+                output.innerHTML = '<pre style="color: #555">等待执行...</pre>';
+                arrow.classList.remove('running');
+                content.classList.remove('expanded');
+
+                if (index < workflowSteps.length - 1) {
+                    const connector = document.getElementById(`connector-${index}`);
+                    connector.querySelector('.connector-line').classList.remove('active');
+                    connector.querySelector('.connector-dot').classList.remove('running');
+                }
+            });
+
+            document.getElementById('console').innerHTML = `
+                <div class="console-line info">
+                    <span class="timestamp">[${new Date().toLocaleTimeString('zh-CN', { hour12: false })}]</span>
+                    工作流已重置
+                </div>
+            `;
+
+            isRunning = false;
+            currentStep = 0;
+        }
+
+        function previewStep(index) {
+            log(`预览步骤 ${index + 1}: ${workflowSteps[index].title}`);
+            toggleStep(index);
+        }
+
+        function editStep(index) {
+            log(`编辑步骤 ${index + 1}: ${workflowSteps[index].title} - 打开编辑器...`);
+            alert(`编辑功能演示：\n\n步骤: ${workflowSteps[index].title}\n\n这里可以打开一个配置编辑器，\n修改该步骤的参数、规则或输出格式。`);
+        }
+
+        // 初始化
+        initWorkflow();
+    </script>
+</body>
+</html>
