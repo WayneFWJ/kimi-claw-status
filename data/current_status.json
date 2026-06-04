@@ -1,6 +1,6 @@
 {
-  "status": "idle",
-  "task": "\u7b49\u5f85\u6307\u4ee4",
-  "load": 0,
-  "timestamp": 1780538543
+  "status": "processing",
+  "task": "heartbeat\u4fdd\u6d3b",
+  "load": 50,
+  "timestamp": 1780563207
 }
